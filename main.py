@@ -16,8 +16,11 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 
 logger = logging.getLogger(__name__)
 
-TIMETABLE, TEST = range(2)
 
+# ConversationHandler states
+TIMETABLE, ADD_MODULE = range(2)
+
+# List of user's modules
 modules = []
 
 
@@ -27,24 +30,6 @@ def start(update, context):
     update.message.reply_text(main_menu_msg(),
                               reply_markup=main_menu_keyboard(),
                               parse_mode=ParseMode.MARKDOWN_V2)
-
-
-def timetable_input(update, context):
-    update.message.reply_text(timetable_input_msg(),
-                              parse_mode=ParseMode.MARKDOWN_V2)
-    return ConversationHandler.END
-
-
-def invalid_input(update, context):
-    update.message.reply_text(invalid_input_msg(),
-                              parse_mode=ParseMode.MARKDOWN_V2)
-    return TIMETABLE
-
-
-def cancel(update, context):
-    update.message.reply_text(cancel_msg(),
-                              parse_mode=ParseMode.MARKDOWN_V2)
-    return ConversationHandler.END
 
 
 # All state functions are appended with _page for consistency
@@ -59,8 +44,33 @@ def main_menu_page(update, context):
 def timetable_page(update, context):
     query = update.callback_query
     query.edit_message_text(text=timetable_msg(),
+                            reply_markup=return_keyboard(),
                             parse_mode=ParseMode.MARKDOWN_V2)
     return TIMETABLE
+
+
+# User input valid NUSMods timetable link
+def timetable_input_page(update, context):
+    update.message.reply_text(timetable_input_msg(),
+                              reply_markup=return_keyboard(),
+                              parse_mode=ParseMode.MARKDOWN_V2)
+    return ConversationHandler.END
+
+
+# User input invalid link
+def invalid_input_page(update, context):
+    update.message.reply_text(invalid_input_msg(),
+                              reply_markup=return_keyboard(),
+                              parse_mode=ParseMode.MARKDOWN_V2)
+    return TIMETABLE
+
+
+# User cancels operation
+def cancel_page(update, context):
+    update.message.reply_text(cancel_msg(),
+                              reply_markup=return_keyboard(),
+                              parse_mode=ParseMode.MARKDOWN_V2)
+    return ConversationHandler.END
 
 
 # "Change settings for reminders for my lessons and exams"
@@ -87,20 +97,27 @@ def help_page(update, context):
                             parse_mode=ParseMode.MARKDOWN_V2)
 
 
-def test_page(update, context):
+# "Manually add module(s)"
+def module_page(update, context):
     query = update.callback_query
     query.edit_message_text(text=add_module_msg_1(),
+                            reply_markup=return_keyboard(),
                             parse_mode=ParseMode.MARKDOWN_V2)
-    return TEST
+    return ADD_MODULE
 
-def test_page_2(update, context):
+
+# Prompts the user to add more modules
+def module_page_2(update, context):
     new_text = update.message.text + add_module_msg_2()
     update.message.reply_text(text=new_text,
+                              reply_markup=return_keyboard(),
                               parse_mode=ParseMode.MARKDOWN_V2)
     modules.append(update.message.text)
-    return TEST
+    return ADD_MODULE
 
-def list_test_page(update, context):
+
+# List all modules added by the user
+def list_module_page(update, context):
     query = update.callback_query
     if len(modules) == 0:
         query.edit_message_text("No modules added yet! Type /start to return.")
@@ -144,6 +161,12 @@ def information_keyboard():
 
 def help_keyboard():
     keyboard = [[InlineKeyboardButton('Return', callback_data='main')]]
+    return InlineKeyboardMarkup(keyboard)
+
+
+# Keyboard that returns user to main page
+def return_keyboard():
+    keyboard = [[InlineKeyboardButton('Return to main page', callback_data='main')]]
     return InlineKeyboardMarkup(keyboard)
 
 
@@ -201,35 +224,35 @@ def error(update, context):
 
 
 def main():
-    updater = Updater(token="1130956112:AAHJvZVA3eblWpWSfTT4JF2E8mO4Wn1Xtqo", use_context=True)
+    updater = Updater('1130956112:AAHJvZVA3eblWpWSfTT4JF2E8mO4Wn1Xtqo', use_context=True)
 
     dp = updater.dispatcher
 
     timetable_conv = ConversationHandler(
         entry_points=[CallbackQueryHandler(timetable_page, pattern='m1')],
-        states={TIMETABLE: [MessageHandler(Filters.regex(r'https:\/\/nusmods\.com(.*)'), timetable_input),
-                            CommandHandler('cancel', cancel),
-                            MessageHandler(Filters.all, invalid_input)]},
-        fallbacks=[CommandHandler('cancel', cancel)]
+        states={TIMETABLE: [MessageHandler(Filters.regex(r'https:\/\/nusmods\.com(.*)'), timetable_input_page),
+                            CommandHandler('cancel', cancel_page),
+                            MessageHandler(Filters.all, invalid_input_page)]},
+        fallbacks=[CommandHandler('cancel', cancel_page)]
     )
 
-    add_module_manually_conv = ConversationHandler(
-        entry_points=[CallbackQueryHandler(test_page, pattern='test')],
-        states={TEST: [CommandHandler('cancel', cancel),
-                       MessageHandler(Filters.text, test_page_2)]},
-        fallbacks=[CommandHandler('cancel', cancel)]
+    add_module_conv = ConversationHandler(
+        entry_points=[CallbackQueryHandler(module_page, pattern='test')],
+        states={ADD_MODULE: [CommandHandler('cancel', cancel_page),
+                             MessageHandler(Filters.text, module_page_2)]},
+        fallbacks=[CommandHandler('cancel', cancel_page)]
     )
 
     dp.add_handler(timetable_conv)
-    dp.add_handler(add_module_manually_conv)
+    dp.add_handler(add_module_conv)
     dp.add_handler(CommandHandler('start', start))
     dp.add_handler(CallbackQueryHandler(main_menu_page, pattern='main'))
     dp.add_handler(CallbackQueryHandler(timetable_page, pattern='m1'))
     dp.add_handler(CallbackQueryHandler(settings_page, pattern='m2'))
     dp.add_handler(CallbackQueryHandler(information_page, pattern='m3'))
     dp.add_handler(CallbackQueryHandler(help_page, pattern='m4'))
-    dp.add_handler(CallbackQueryHandler(test_page, pattern='test'))
-    dp.add_handler(CallbackQueryHandler(list_test_page, pattern='list_test'))
+    dp.add_handler(CallbackQueryHandler(module_page, pattern='test'))
+    dp.add_handler(CallbackQueryHandler(list_module_page, pattern='list_test'))
 
     dp.add_error_handler(error)
 
