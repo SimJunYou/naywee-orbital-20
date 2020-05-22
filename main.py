@@ -216,7 +216,7 @@ def error(update, context):
 
 
 def main():
-    updater = Updater(os.environ('TELE_TOKEN'), use_context=True)
+    updater = Updater('1130956112:AAHJvZVA3eblWpWSfTT4JF2E8mO4Wn1Xtqo', use_context=True)
 
     dp = updater.dispatcher
 
@@ -246,7 +246,6 @@ def main():
 
     dp.add_error_handler(error)
 
-    logger.info(os.environ('TELE_TOKEN'))
     logger.info("Starting NUSMods Telebot...")
     updater.start_polling()
     logger.info("Bot is running!")
