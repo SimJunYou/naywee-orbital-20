@@ -216,7 +216,7 @@ def error(update, context):
 
 
 def main():
-    updater = Updater('1130956112:AAHJvZVA3eblWpWSfTT4JF2E8mO4Wn1Xtqo', use_context=True)
+    updater = Updater(os.environ['TELE_TOKEN'], use_context=True)
 
     dp = updater.dispatcher
 
