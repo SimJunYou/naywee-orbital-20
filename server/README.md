@@ -1,33 +1,26 @@
 # naywee-orbital-20
 Team Naywee's Orbital 20 Project
 
-## WORKFLOW
+## WEBSITE BRANCH - EXPRESS
 
-### Setting up workspace
+The Express backend basically only uses [node-pg](https://node-postgres.com/) to make a RESTful API for the React frontend and the Telegram bot.
 
-* After you cloned this repo, everything should be up to date. You will have a `master` branch locally and your remote branches will be there too.
-   * You can do `git remote show` to check your remote branches.
-   * To make the local versions of remote branches, just do `git checkout <branch>`. Git will automatically turn it into a local branch that tracks that remote branch with the same name.
+### API Methods
 
-### Pulling before each work session
+All test entries are in following format: (`{id: id, description: description}`)
 
-* Do a `git pull origin master` before you start working each time. This keeps the other branches updated too... just in case.
-* `git branch` to ensure you're in your own branch before you start working.
+Uses the following HTTP methods:
+* `GET: /` - Returns JSON of all test IDs. 
+* `GET: /{id}` - Returns JSON of that ID.
+* `POST: /` - In body, send JSON of new entry with only `description` (ID is automatically added)
+* `DELETE: /{id}` - Returns JSON `{true}` or `{false}` depending on success
 
-### Pushing after each work session
+### Database Schema
 
-* First, `git add .` if you want to stage all files or `git add <path/to/file>` if you want to add specific files.
-* `git commit -m 'commit message here'` followed by `git push origin <branch>:<branch>` or just `git push origin master` (only if you know what you're doing!)
+To be decided! 
 
-### Rolling back
+Only one table (`test`) in one database (`nmtb`) is being used right now.
 
-* Undoing a local commit: Do `git revert HEAD`. `git revert` works by bringing your previous commit in as a new commit to undo what you did so far.
-   * `HEAD` refers to your current commit (which is the one you wanna undo).
-   * If you want to revert back to BEFORE a specific commit, use `git log` and find the commit hash (a long string of characters) and do `git revert <hash>`
-* Undoing a push to remote: Do `git push -f origin <hash>:<branch>`.
-   * This forces a push of the `<hash>` commit, which is the one you want to revert to, to the specified remote
- branch in `<branch>`. Use `git log` to find the hash.
-   * You can undo the local commit first, then `git push -f origin master:<branch>` instead of finding a specific commit.
-* Hard reset:
-   * First, try doing `git fetch` then `git reset --hard origin/<branch>`.
-   * If that doesn't work, delete everything in your repo except the .git folder, download from the Github repo page (green button on top right of file window), put everything in the same folder, then `git add *`, `git commit`.
+For test entries, the schema is as follows:
+`id: SERIAL PRIMARY KEY`, `description: VARCHAR (255)`
+

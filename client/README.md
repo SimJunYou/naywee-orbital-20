@@ -1,4 +1,13 @@
+# naywee-orbital-20
+Team Naywee's Orbital 20 Project
+
+## WEBSITE BRANCH - REACT
+
+The folder for our React frontend. The code is a mess, so I apologise in advance.
+
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+
+(saving everything below because I actually need to refer to it)
 
 ## Available Scripts
 
