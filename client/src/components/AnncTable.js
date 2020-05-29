@@ -25,7 +25,7 @@ class AnncTable extends React.Component {
     });
   }
 
-  // delete data
+  // FIXME: index from rowsDeleted isn't actually id
   deleteData = (rowsDeleted) => {
     var promises = [];
     console.log(rowsDeleted);
