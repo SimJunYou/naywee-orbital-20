@@ -6,7 +6,7 @@ const { pool } = require('./db')
 
 //create a test entry
 
-router.post("/", async (req, res) => {
+router.post("/api", async (req, res) => {
   try {
     const { description } = req.body;
     const newTodo = await pool.query(
@@ -22,7 +22,7 @@ router.post("/", async (req, res) => {
 
 //get all test entries
 
-router.get("/", async (req, res) => {
+router.get("/api", async (req, res) => {
   try {
     const allTodos = await pool.query("SELECT * FROM test");
     res.json(allTodos.rows);
@@ -33,7 +33,7 @@ router.get("/", async (req, res) => {
 
 //get a test entry
 
-router.get("/:id", async (req, res) => {
+router.get("/api/:id", async (req, res) => {
   try {
     const { id } = req.params;
     const todo = await pool.query("SELECT * FROM test WHERE id = $1", [
@@ -48,7 +48,7 @@ router.get("/:id", async (req, res) => {
 
 //delete a test entry
 
-router.delete("/:id", async (req, res) => {
+router.delete("/api/:id", async (req, res) => {
   try {
     const { id } = req.params;
     const deleteTodo = await pool.query("DELETE FROM test WHERE id = $1", [

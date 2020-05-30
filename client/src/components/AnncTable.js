@@ -31,7 +31,7 @@ class AnncTable extends React.Component {
     console.log(rowsDeleted);
     for (var i = 0; i < rowsDeleted.data.length; i++) {
         var id = rowsDeleted.data[i].index + 1;
-        promises.push(fetch(`http://localhost:5000/${id}`, {
+        promises.push(fetch(`/api/${id}`, {
                             method: "DELETE" })
                         .then(response => response.json())
         );
@@ -46,7 +46,7 @@ class AnncTable extends React.Component {
         var total = 0;
         var data = {};
         
-        fetch("http://localhost:5000")
+        fetch("/api")
         .then(response => response.json())
         .then(jsonData => {
             total = jsonData.length;
@@ -65,7 +65,7 @@ class AnncTable extends React.Component {
     this.setState({
       isLoading: true,
     });
-    this.getFromAPI(`/myApiServer?page=${page}`).then(res => {
+    this.getFromAPI().then(res => {
       this.setState({
         isLoading: false,
         page: page,
