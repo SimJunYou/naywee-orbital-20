@@ -1,7 +1,25 @@
 # naywee-orbital-20
 Team Naywee's Orbital 20 Project
 
+## OVERALL
+
+There are 2 main branches: `master` and `website`. `master` is really the Telegram bot branch, and the `website` branch holds both the React frontend and the Express backend.
+
+We are using Heroku as the deployment platform for our project. 2 separate Heroku apps are used, one for the bot and one for the website front/backend. We have also provisioned a Postgres database addon for the website app, making the Express backend serve as a RESTful API server for it.
+
+## TELEGRAM BOT BRANCH
+
+### Structure
+
+This branch is for the Telegram bot. Heroku will deploy the latest commit of this branch.
+
+### Deploying
+
+The only file that needs to be run in here is `main.py`. Hence, in `Procfile` (used by Heroku to determine what to run), we just put `python main.py`. The `Pipfile` stores the `pip` requirements for our bot (like `package.json` and `npm` for Node). Heroku installs everything needed as stated in `Pipfile` and then runs `main.py`.
+
 ## WORKFLOW
+
+Some basic Git references below.
 
 ### Setting up workspace
 
