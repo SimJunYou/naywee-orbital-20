@@ -10,11 +10,7 @@ The rest of the files and folders in here is for the Express backend, which serv
 
 ### Deploying
 
-This branch is pushed manually onto the Heroku remote repo where the Heroku app is launched from.
-
-(NOT IMPLEMENTED YET)
-
-The Express server will be built and launched first, followed by the React server using the heroku-postbuild script.
+This branch is pushed manually onto the Heroku remote repo where the Heroku app is launched from. The Express server will be built and launched first, followed by the React server using the heroku-postbuild script.
 
 ## WEBSITE BRANCH - EXPRESS
 
