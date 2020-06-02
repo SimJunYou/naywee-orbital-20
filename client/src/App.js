@@ -1,4 +1,10 @@
+/* REACT AND REACT ROUTER */
 import React from 'react';
+import PropTypes from 'prop-types';
+import {
+  BrowserRouter as Router,
+  Link
+} from "react-router-dom";
 
 /* COMPONENTS */
 import InputAnnc from "./components/InputAnnc";
@@ -23,7 +29,6 @@ import ListItemIcon from '@material-ui/core/ListItemIcon';
 import theme from './theme'
 
 /* ICONS */
-import WebsiteIcon from './bot-icon-tp.png'
 import HomeIcon from '@material-ui/icons/HomeOutlined';
 import SettingsIcon from '@material-ui/icons/SettingsOutlined';
 import HelpIcon from '@material-ui/icons/HelpOutlineOutlined';
@@ -48,14 +53,6 @@ const useStyles = makeStyles({
     width: drawerWidth,
     flexShrink: 0
   },
-  mainIcon: {
-    display: 'block',
-    'margin-left': 'auto',
-    'margin-right': 'auto',
-    width: drawerWidth*0.5,
-    'padding-top': theme.spacing(3),
-    'padding-bottom': theme.spacing(3)
-  },
   drawerPaper: {
     width: drawerWidth,
     backgroundColor: theme.palette.background.light,
@@ -63,9 +60,9 @@ const useStyles = makeStyles({
 
   },
   drawerContainer: {
-    overflow: 'auto',
+    overflow: 'auto'
   },
-  navIcon:{
+  navItem:{
     color: theme.palette.primary.main
   },
   // necessary for content to be below app bar
@@ -83,71 +80,76 @@ const useStyles = makeStyles({
     backgroundColor: theme.palette.paper.main,
     color: theme.palette.paper.contrastText,
     borderColor: theme.palette.primary.main
-  },
+  }
 });
+
+function NavBarItem(props) {
+  const classes = useStyles();
+  const { icon, primary, to } = props;
+  return (
+    <Link className={classes.navItem} to={to}>
+      <ListItem focusRippleColor='red' touchRippleColor='red' button>
+          <ListItemIcon className={classes.navItem}>{icon}</ListItemIcon>
+          <ListItemText className={classes.navItem} primary={primary} />
+      </ListItem>
+    </Link>
+  );
+}
+
+
 
 export default function Layout() {
   const classes = useStyles();
 
   return (
-    <div className={classes.root}>
-      {/* TOP TITLE BAR */}
-      <AppBar position="fixed" className={classes.appBar}>
-        <Toolbar>
-          <Typography variant="h6" noWrap>
-            NUSMods Telebot Administration Website
-          </Typography>
-        </Toolbar>
-      </AppBar>
+    <Router>
+      <div className={classes.root}>
+        {/* TOP TITLE BAR */}
+        <AppBar position="fixed" className={classes.appBar}>
+          <Toolbar>
+            <Typography variant="h6" noWrap>
+              NUSMods Telebot Administration Website
+            </Typography>
+          </Toolbar>
+        </AppBar>
 
-      {/* SIDE NAVIGATION BAR */}
-      <Drawer
-        className={classes.drawer}
-        variant="permanent"
-        classes={{
-          paper: classes.drawerPaper,
-        }}
-      >
-        <Toolbar />
-        <div className={classes.drawerContainer}>
-          <List>
-            <ListItem button>
-              <ListItemIcon className={classes.navIcon}><HomeIcon /></ListItemIcon>
-              <ListItemText primary='Home' />
-            </ListItem>
-            <ListItem button>
-              <ListItemIcon className={classes.navIcon}><SettingsIcon /></ListItemIcon>
-              <ListItemText primary='Settings' />
-            </ListItem>
-            <ListItem button>
-              <ListItemIcon className={classes.navIcon}><HelpIcon /></ListItemIcon>
-              <ListItemText primary='Help' />
-            </ListItem>
-            <ListItem button>
-              <ListItemIcon className={classes.navIcon}><LoginIcon /></ListItemIcon>
-              <ListItemText primary='Login' />
-            </ListItem>
-          </List>
-        </div>
-      </Drawer>
+        {/* SIDE NAVIGATION BAR */}
+        <Drawer
+          className={classes.drawer}
+          variant="permanent"
+          classes={{
+            paper: classes.drawerPaper,
+          }}
+        >
+          <Toolbar />
+          <div className={classes.drawerContainer}>
+            <List>
+              <NavBarItem icon={<HomeIcon/>} primary='Home' to='/' />
+              <NavBarItem icon={<SettingsIcon/>} primary='Settings' to='/settings' />
+              <NavBarItem icon={<HelpIcon/>} primary='Help' to='/help' />
+              <NavBarItem icon={<LoginIcon/>} primary='Login' to='/login' />
+            </List>
+          </div>
+        </Drawer>
 
-      {/* CONTENT GOES HERE! */}
-      <main className={classes.content}>
-        <Toolbar />
+        {/* CONTENT GOES HERE! */}
+        <main className={classes.content}>
+          <Toolbar />
 
-        <Card className={classes.appCard} variant='outlined'>
-          <CardContent>
-            <InputAnnc />
-          </CardContent>
-        </Card>
+          <Card className={classes.appCard} variant='outlined'>
+            <CardContent>
+              <InputAnnc />
+            </CardContent>
+          </Card>
 
-        <Card className={classes.appCard} variant='outlined'>
-          <CardContent>
-            <ListAnnc />
-          </CardContent>
-        </Card>
-        
-      </main>
-    </div>
+          <Card className={classes.appCard} variant='outlined'>
+            <CardContent>
+              <ListAnnc />
+            </CardContent>
+          </Card>
+          
+        </main>
+      </div>
+    </Router>
   );
 }

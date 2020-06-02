@@ -1,11 +1,7 @@
-import React, { Fragment, useState } from "react";
-import { makeStyles } from '@material-ui/core/styles';
+import React, { Fragment } from "react";
 import Typography from '@material-ui/core/Typography';
 
 import AnncTable from './AnncTable'
-
-const useStyles = makeStyles({
-});
 
 
 const ListAnnc = () => {

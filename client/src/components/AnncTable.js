@@ -25,13 +25,14 @@ class AnncTable extends React.Component {
     });
   }
 
-  // FIXME: index from rowsDeleted isn't actually id
+  // delete data
   deleteData = (rowsDeleted) => {
     var promises = [];
     console.log(rowsDeleted);
     for (var i = 0; i < rowsDeleted.data.length; i++) {
-        var id = rowsDeleted.data[i].index + 1;
-        promises.push(fetch(`/api/${id}`, {
+        var indexToDelete = rowsDeleted.data[i].index;
+        var idToDelete = this.state.data[indexToDelete].id;
+        promises.push(fetch(`/api/${idToDelete}`, {
                             method: "DELETE" })
                         .then(response => response.json())
         );

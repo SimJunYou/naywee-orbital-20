@@ -1,6 +1,7 @@
 import { createMuiTheme } from '@material-ui/core/styles';
+import createPalette from '@material-ui/core/styles/createPalette';
 
-const palette = {
+const palette = createPalette({
     primary: {    main: '#FF5138',
                   light: '#ff8a50',
                   dark: '#c41c00',
@@ -12,9 +13,10 @@ const palette = {
                   contrastText: '#AAAAAA'},
     paper: {      main: '#292929',
                   contrastText: '#AAAAAA'},
-    text: {       primary: '#AAAAAA'},
+    text: {       primary: '#AAAAAA',
+                  secondary: '#AAAAAA'},
     type: 'dark'
-};
+});
 const themeName = 'NUSMods Theme';
 
 export default createMuiTheme({ palette, themeName });
