@@ -17,6 +17,8 @@ const palette = createPalette({
                   secondary: '#AAAAAA'},
     type: 'dark'
 });
+
+
 const themeName = 'NUSMods Theme';
 
 export default createMuiTheme({ palette, themeName });

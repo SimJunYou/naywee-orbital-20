@@ -4,24 +4,33 @@ import { CircularProgress, Typography } from '@material-ui/core';
 import MUIDataTable from "mui-datatables";
 
 class AnncTable extends React.Component {
+  _isMounted = false; // a mounted state outside of state
 
   state = {
     page: 0,
     count: 1,
     data: [["Loading Data..."]],
-    isLoading: false
+    isLoading: false,
   };
 
   componentDidMount() {
+    // get data for table every time the table is loaded in
     this.getData();
+    this._isMounted = true;
+  }
+
+  componentWillUnmount() {
+    // prevents state from updating while component is not mounted
+    this._isMounted = false; 
   }
 
   // get data
   getData = () => {
     this.setState({ isLoading: true });
     this.getFromAPI().then(res => {
-      console.log(res.data)
-      this.setState({ data: res.data, isLoading: false, count: res.total });
+      if (this._isMounted){
+        this.setState({ data: res.data, isLoading: false, count: res.total });
+      }
     });
   }
 
@@ -106,7 +115,6 @@ class AnncTable extends React.Component {
       count: count,
       page: page,
       onTableChange: (action, tableState) => {
-        console.log(action, tableState);
         switch (action) {
           case 'changePage':
             this.changePage(tableState.page);
@@ -117,7 +125,7 @@ class AnncTable extends React.Component {
     };
     return (
       <div>
-        <MUIDataTable title={<Typography variant="title">
+        <MUIDataTable title={<Typography variant="h6">
           Announcements List
           {isLoading && <CircularProgress size={24} style={{marginLeft: 15, position: 'relative', top: 4}} />}
           </Typography>
