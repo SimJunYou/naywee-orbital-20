@@ -4,9 +4,11 @@
 import logging
 import os
 
-from telegram.ext import Updater
-from telegram.ext import CommandHandler, CallbackQueryHandler, ConversationHandler
-from telegram.ext import MessageHandler, Filters
+import requests
+import json
+
+from telegram.ext import Updater, Filters
+from telegram.ext import CommandHandler, CallbackQueryHandler, ConversationHandler, MessageHandler
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram import ParseMode
 
@@ -18,10 +20,11 @@ logger = logging.getLogger(__name__)
 
 
 # ConversationHandler states
-TIMETABLE, ADD_MODULE = range(2)
+TIMETABLE = range(1)
 
-# List of user's modules
-modules = []
+
+# User's timetable data
+module_data = []
 
 
 ########## STATES ##########
@@ -44,13 +47,32 @@ def main_menu_page(update, context):
 def timetable_page(update, context):
     query = update.callback_query
     query.edit_message_text(text=timetable_msg(),
-                            reply_markup=return_keyboard(),
                             parse_mode=ParseMode.MARKDOWN_V2)
     return TIMETABLE
 
 
 # User input valid NUSMods timetable link
 def timetable_input_page(update, context):
+    url = update.message.text
+    url = url.split('?')[1].split('&')
+    for data in url:
+        data = data.split('=')
+        data[1] = data[1].split(',')
+        module_data.append(data)
+    for data in module_data:
+        for x in range(len(data[1])):
+            data[1][x] = data[1][x].split(':')
+            lesson_type = data[1][x][0]
+            if lesson_type == "LEC":
+                data[1][x][0] = "Lecture"
+            elif lesson_type == "TUT":
+                data[1][x][0] = "Tutorial"
+            elif lesson_type == "REC":
+                data[1][x][0] = "Recitation"
+            elif lesson_type == "LAB":
+                data[1][x][0] = "Laboratory"
+            elif lesson_type == "SEC":
+                data[1][x][0] = "Sectional Teaching"
     update.message.reply_text(timetable_input_msg(),
                               reply_markup=return_keyboard(),
                               parse_mode=ParseMode.MARKDOWN_V2)
@@ -60,12 +82,19 @@ def timetable_input_page(update, context):
 # User input invalid link
 def invalid_input_page(update, context):
     update.message.reply_text(invalid_input_msg(),
-                              reply_markup=return_keyboard(),
                               parse_mode=ParseMode.MARKDOWN_V2)
     return TIMETABLE
 
 
-# "Change settings for reminders for my lessons and exams"
+# User types /cancel
+def cancel_page(update, context):
+    update.message.reply_text(cancel_msg(),
+                              reply_markup=return_keyboard(),
+                              parse_mode=ParseMode.MARKDOWN_V2)
+    return ConversationHandler.END
+
+
+# "Change settings"
 def settings_page(update, context):
     query = update.callback_query
     query.edit_message_text(text=settings_msg(),
@@ -73,15 +102,25 @@ def settings_page(update, context):
                             parse_mode=ParseMode.MARKDOWN_V2)
 
 
-# "See module-specific information from your lecturers"
-def information_page(update, context):
+# "See announcements"
+def announcement_page(update, context):
     query = update.callback_query
-    query.edit_message_text(text=information_msg(),
-                            reply_markup=information_keyboard(),
-                            parse_mode=ParseMode.MARKDOWN_V2)
+    text = "Your lesson details are listed here:\n"
+    semester = 1
+    for i in range(len(module_data)):
+        text = text + "\n" + module_data[i][0] + "\n"
+        page = requests.get('https://api.nusmods.com/v2/2019-2020/modules/' + module_data[i][0] + '.json')
+        page_py = json.loads(page.text)
+        for x in page_py["semesterData"][semester - 1]["timetable"]:
+            for j in range(len(module_data[i][1])):
+                if x["classNo"] == module_data[i][1][j][1] and x["lessonType"] == module_data[i][1][j][0]:
+                    text = text + x["lessonType"] + " " + x["classNo"] + " " + x["venue"] + " "\
+                           + x["day"] + " " + x["startTime"] + "\n"
+    query.edit_message_text(text=text,
+                            reply_markup=return_keyboard())
 
 
-# "Learn more about what I can do for you"
+# "Learn more"
 def help_page(update, context):
     query = update.callback_query
     query.edit_message_text(text=help_msg(),
@@ -89,35 +128,17 @@ def help_page(update, context):
                             parse_mode=ParseMode.MARKDOWN_V2)
 
 
-# "Manually add module(s)"
-def module_page(update, context):
-    query = update.callback_query
-    query.edit_message_text(text=add_module_msg_1(),
-                            reply_markup=return_keyboard(),
-                            parse_mode=ParseMode.MARKDOWN_V2)
-    return ADD_MODULE
-
-
-# Prompts the user to add more modules
-def module_page_2(update, context):
-    new_text = update.message.text + add_module_msg_2()
-    update.message.reply_text(text=new_text,
-                              reply_markup=return_keyboard(),
-                              parse_mode=ParseMode.MARKDOWN_V2)
-    modules.append(update.message.text)
-    return ADD_MODULE
-
-
 # List all modules added by the user
 def list_module_page(update, context):
     query = update.callback_query
-    if len(modules) == 0:
-        query.edit_message_text("No modules added yet!",
+    if len(module_data) == 0:
+        text = "No modules added yet!"
+        query.edit_message_text(text,
                                 reply_markup=return_keyboard())
     else:
         text = "Here is the list of your modules:\n\n"
-        for x in modules:
-            text = text + x + "\n"
+        for data in module_data:
+            text = text + data[0] + "\n"
         query.edit_message_text(text,
                                 reply_markup=return_keyboard())
 
@@ -126,19 +147,16 @@ def list_module_page(update, context):
 
 # All functions here are appended with _keyboard for consistency
 def main_menu_keyboard():
-    keyboard = [[InlineKeyboardButton("Send me your NUSMods timetable",
-                                    callback_data='m1')],
-                [InlineKeyboardButton("Change settings for reminders for my lessons and exams",
-                                    callback_data='m2')],
-                [InlineKeyboardButton("See module-specific information from your lecturers",
-                                    callback_data='m3')],
-                [InlineKeyboardButton("Learn more about what I can do for you",
-                                    callback_data='m4')],
-                [InlineKeyboardButton("Manually add module(s)",
-                                    callback_data='m5')],
+    keyboard = [[InlineKeyboardButton("Sync timetable",
+                                      callback_data='m1')],
+                [InlineKeyboardButton("Change settings",
+                                      callback_data='m2')],
+                [InlineKeyboardButton("See announcements",
+                                      callback_data='m3')],
+                [InlineKeyboardButton("Learn more about me",
+                                      callback_data='m4')],
                 [InlineKeyboardButton("List my module(s)",
-                                    callback_data='m6')]
-                ]
+                                      callback_data='m5')]]
     return InlineKeyboardMarkup(keyboard)
 
 
@@ -177,16 +195,16 @@ def timetable_input_msg():
 
 
 def invalid_input_msg():
-    return ("Invalid input\! Please send me a url link instead\.")
+    return ("Invalid input\! Please send me a url link instead\. Enter \/cancel "
+            "to go back to the main page\.")
+
+
+def cancel_msg():
+    return ("Action cancelled\.")
 
 
 def settings_msg():
     return ("*Settings page:*\n"
-            "I can't do anything yet\! Go back\!")
-
-
-def information_msg():
-    return ("*Information page:*\n"
             "I can't do anything yet\! Go back\!")
 
 
@@ -201,14 +219,6 @@ def help_msg():
             "You can view announcements given by your faculty members through me as well\!")
 
 
-def add_module_msg_1():
-    return ("Here you can manually input your module\(s\)\.")
-
-
-def add_module_msg_2():
-    return (" added\! You may continue adding more module\(s\)\.")
-
-
 ########## HANDLERS ##########
 
 def error(update, context):
@@ -219,30 +229,25 @@ def main():
     updater = Updater(os.environ['TELE_TOKEN'], use_context=True)
 
     dp = updater.dispatcher
+    # jq = updater.job_queue
 
     timetable_conv = ConversationHandler(
         entry_points=[CallbackQueryHandler(timetable_page, pattern='m1')],
         states={TIMETABLE: [MessageHandler(Filters.regex(r'https:\/\/nusmods\.com(.*)'), timetable_input_page),
-                            MessageHandler(Filters.all, invalid_input_page)]},
-        fallbacks=[]
-    )
-
-    add_module_conv = ConversationHandler(
-        entry_points=[CallbackQueryHandler(module_page, pattern='m5')],
-        states={ADD_MODULE: [MessageHandler(Filters.text, module_page_2)]},
-        fallbacks=[]
+                            MessageHandler(Filters.all & ~Filters.command, invalid_input_page)]},
+        fallbacks=[CommandHandler('cancel', cancel_page),
+                   CommandHandler('start', cancel_page)]
     )
 
     dp.add_handler(timetable_conv)
-    dp.add_handler(add_module_conv)
+
     dp.add_handler(CommandHandler('start', start))
     dp.add_handler(CallbackQueryHandler(main_menu_page, pattern='main'))
     dp.add_handler(CallbackQueryHandler(timetable_page, pattern='m1'))
     dp.add_handler(CallbackQueryHandler(settings_page, pattern='m2'))
-    dp.add_handler(CallbackQueryHandler(information_page, pattern='m3'))
+    dp.add_handler(CallbackQueryHandler(announcement_page, pattern='m3'))
     dp.add_handler(CallbackQueryHandler(help_page, pattern='m4'))
-    dp.add_handler(CallbackQueryHandler(module_page, pattern='m5'))
-    dp.add_handler(CallbackQueryHandler(list_module_page, pattern='m6'))
+    dp.add_handler(CallbackQueryHandler(list_module_page, pattern='m5'))
 
     dp.add_error_handler(error)
 
