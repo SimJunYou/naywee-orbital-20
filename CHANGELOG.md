@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.5.1] - 2020-06-28
+### Added
+- WIP: Adding more complex logic for database queries
+
 ## [0.5.0] - 2020-06-12
 ### Added
 - Basic add, get, delete features for new database schema

@@ -7,15 +7,48 @@ const { pool } = require('./db')
 // Create a new student
 // - s_id (text) (the telegram ID)
 // - full_name (the full name from Telegram)
-router.post("/api/students", async (req, res) => {
+router.post("/api/students/sync", async (req, res) => {
   try {
-    const { s_id, full_name } = req.body;
-    const newTodo = await pool.query(
-      "INSERT INTO students VALUES($1, $2) RETURNING *",
+    const { s_id, full_name, lessons } = req.body;
+
+    const newStudent = await pool.query(
+      `
+      INSERT INTO students VALUES ($1, $2) ON CONFLICT (s_id)
+      DO UPDATE
+        full_name=EXCLUDED.full_name
+      RETURNING *;
+      `,
       [s_id, full_name]
     );
 
-    res.json(newTodo.rows[0]);
+    const response = [newStudent.rows[0]];
+
+    // lessons:
+    //   { lesson1, lesson2, lesson3, etc...}
+    // lessonX:
+    //   { l_id, days, periods, venues }
+
+    var lessonX = {};
+    while (Object.keys(lessons).length === 0) {
+      let { lessonX, ...lessons } = lessons;
+      const { l_id, days, periods, venues } = lessonX;
+
+      const newLesson = await pool.query(
+        `
+        INSERT INTO lessons VALUES($1, $2, $3, $4) ON CONFLICT (l_id)
+        DO UPDATE SET
+          days=EXCLUDED.days,
+          periods=EXCLUDED.periods,
+          venues=EXCLUDED.venues
+        RETURNING *;
+        `,
+        [l_id, days, periods, venues]
+      );
+
+      response.push(newLesson.rows[0]);
+    };
+
+    res.json(response);
   } catch (err) {
     console.error(err.message);
   }
