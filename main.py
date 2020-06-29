@@ -7,6 +7,8 @@ import os
 import requests
 import json
 
+import datetime
+
 from telegram.ext import Updater, Filters
 from telegram.ext import CommandHandler, CallbackQueryHandler, ConversationHandler, MessageHandler
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
@@ -20,11 +22,12 @@ logger = logging.getLogger(__name__)
 
 
 # ConversationHandler states
-TIMETABLE = range(1)
+TIMETABLE, REMINDER = range(2)
 
 
 # User's timetable data
 module_data = []
+lesson_formatted = []
 
 
 ########## STATES ##########
@@ -53,12 +56,18 @@ def timetable_page(update, context):
 
 # User input valid NUSMods timetable link
 def timetable_input_page(update, context):
+    update.message.reply_text("Syncing...")
+
     url = update.message.text
+    semester = url.split('?')[0].split('-')[1][0]
     url = url.split('?')[1].split('&')
+    module_data.clear()
+
     for data in url:
         data = data.split('=')
         data[1] = data[1].split(',')
         module_data.append(data)
+
     for data in module_data:
         for x in range(len(data[1])):
             data[1][x] = data[1][x].split(':')
@@ -73,9 +82,33 @@ def timetable_input_page(update, context):
                 data[1][x][0] = "Laboratory"
             elif lesson_type == "SEC":
                 data[1][x][0] = "Sectional Teaching"
+
+    for i in range(len(module_data)):
+        page = requests.get('https://api.nusmods.com/v2/2019-2020/modules/' + module_data[i][0] + '.json')
+        page_py = json.loads(page.text)
+        for x in page_py["semesterData"][int(semester) - 1]["timetable"]:
+            for j in range(len(module_data[i][1])):
+                if x["classNo"] == module_data[i][1][j][1] and x["lessonType"] == module_data[i][1][j][0]:
+                    l_id = module_data[i][0] + "=" + module_data[i][1][j][0] + ":" + module_data[i][1][j][1]
+                    days = x["day"]
+                    venues = x["venue"]
+                    periods = x["startTime"] + "-" + x["endTime"]
+                    data_to_post = dict(l_id=l_id, days=days, venues=venues, periods=periods)
+                    # requests.post("https://nusmods-tb-website.herokuapp.com/api/lessons", data=data_to_post)
+                    lesson_formatted.append(data_to_post)
+
+    for data in lesson_formatted:
+        print(data)
+
     update.message.reply_text(timetable_input_msg(),
-                              reply_markup=return_keyboard(),
                               parse_mode=ParseMode.MARKDOWN_V2)
+
+    return REMINDER
+
+
+def reminder_page(update, context):
+    update.message.reply_text(text="Reminders will now be sent to you!",
+                              reply_markup=return_keyboard())
     return ConversationHandler.END
 
 
@@ -105,19 +138,9 @@ def settings_page(update, context):
 # "See announcements"
 def announcement_page(update, context):
     query = update.callback_query
-    text = "Your lesson details are listed here:\n"
-    semester = 1
-    for i in range(len(module_data)):
-        text = text + "\n" + module_data[i][0] + "\n"
-        page = requests.get('https://api.nusmods.com/v2/2019-2020/modules/' + module_data[i][0] + '.json')
-        page_py = json.loads(page.text)
-        for x in page_py["semesterData"][semester - 1]["timetable"]:
-            for j in range(len(module_data[i][1])):
-                if x["classNo"] == module_data[i][1][j][1] and x["lessonType"] == module_data[i][1][j][0]:
-                    text = text + x["lessonType"] + " " + x["classNo"] + " " + x["venue"] + " "\
-                           + x["day"] + " " + x["startTime"] + "\n"
-    query.edit_message_text(text=text,
-                            reply_markup=return_keyboard())
+    query.edit_message_text(text=announcements_msg(),
+                            reply_markup=return_keyboard(),
+                            parse_mode=ParseMode.MARKDOWN_V2)
 
 
 # "Learn more"
@@ -191,7 +214,7 @@ def timetable_msg():
 
 
 def timetable_input_msg():
-    return ("Your timetable is now synced\!")
+    return ("Your timetable is now synced\! Type \/reminder to start receving reminders\.")
 
 
 def invalid_input_msg():
@@ -201,6 +224,11 @@ def invalid_input_msg():
 
 def cancel_msg():
     return ("Action cancelled\.")
+
+
+def announcements_msg():
+    return ("*Announcements page:*\n"
+            "I can't do anything yet\! Go back\!")
 
 
 def settings_msg():
@@ -226,30 +254,57 @@ def error(update, context):
 
 
 def main():
-    updater = Updater(os.environ['TELE_TOKEN'], use_context=True)
-
-    dp = updater.dispatcher
-    # jq = updater.job_queue
+    # updater = Updater(os.environ['TELE_TOKEN'], use_context=True)
+    updater = Updater(token='1130956112:AAHJvZVA3eblWpWSfTT4JF2E8mO4Wn1Xtqo', use_context=True)
+    job_queue = updater.job_queue
+    dispatcher = updater.dispatcher
 
     timetable_conv = ConversationHandler(
         entry_points=[CallbackQueryHandler(timetable_page, pattern='m1')],
         states={TIMETABLE: [MessageHandler(Filters.regex(r'https:\/\/nusmods\.com(.*)'), timetable_input_page),
-                            MessageHandler(Filters.all & ~Filters.command, invalid_input_page)]},
+                            MessageHandler(Filters.all & ~Filters.command, invalid_input_page)],
+                REMINDER: [CommandHandler('reminder', reminder_page)]},
         fallbacks=[CommandHandler('cancel', cancel_page),
                    CommandHandler('start', cancel_page)]
     )
 
-    dp.add_handler(timetable_conv)
+    dispatcher.add_handler(timetable_conv)
 
-    dp.add_handler(CommandHandler('start', start))
-    dp.add_handler(CallbackQueryHandler(main_menu_page, pattern='main'))
-    dp.add_handler(CallbackQueryHandler(timetable_page, pattern='m1'))
-    dp.add_handler(CallbackQueryHandler(settings_page, pattern='m2'))
-    dp.add_handler(CallbackQueryHandler(announcement_page, pattern='m3'))
-    dp.add_handler(CallbackQueryHandler(help_page, pattern='m4'))
-    dp.add_handler(CallbackQueryHandler(list_module_page, pattern='m5'))
+    dispatcher.add_handler(CommandHandler('start', start))
+    dispatcher.add_handler(CallbackQueryHandler(main_menu_page, pattern='main'))
+    dispatcher.add_handler(CallbackQueryHandler(timetable_page, pattern='m1'))
+    dispatcher.add_handler(CallbackQueryHandler(settings_page, pattern='m2'))
+    dispatcher.add_handler(CallbackQueryHandler(announcement_page, pattern='m3'))
+    dispatcher.add_handler(CallbackQueryHandler(help_page, pattern='m4'))
+    dispatcher.add_handler(CallbackQueryHandler(list_module_page, pattern='m5'))
 
-    dp.add_error_handler(error)
+    def reminders(bot, update, job_queue):
+        for lesson in lesson_formatted:
+            day_number = -1
+            text = "Your " + lesson["l_id"] + " lesson at " + lesson["venues"] + " is coming up from " + \
+                   lesson["periods"] + "!"
+            day = lesson["days"]
+            if day == "Monday":
+                day_number = 0
+            elif day == "Tuesday":
+                day_number = 1
+            elif day == "Wednesday":
+                day_number = 2
+            elif day == "Thursday":
+                day_number = 3
+            elif day == "Friday":
+                day_number = 4
+            lesson_time_hour = lesson["periods"].split('-')[0][0:2]
+            lesson_time_minute = lesson["periods"].split('-')[0][2:4]
+            lesson_time_formatted = datetime.time(lesson_time_hour - 1, lesson_time_minute, 00, 000000)
+            job_queue.run_daily(send_reminder(text), lesson_time_formatted, days=tuple([day_number]), context=update)
+
+    #def send_reminder(bot, job):
+        #bot.send_message(chat_id=)
+
+    dispatcher.add_handler(CommandHandler('reminder', reminders, pass_job_queue=True))
+
+    dispatcher.add_error_handler(error)
 
     logger.info("Starting NUSMods Telebot...")
     updater.start_polling()
