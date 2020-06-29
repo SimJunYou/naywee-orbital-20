@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.5.2] - 2020-06-29
 ### Changed
 - Logic in '/api/students/sync' for upserting student data
+- Datatable on website to reflect 'students' table (temporarily)
 ### Added
 - '/api/students/custom' for updating custom reminders
 

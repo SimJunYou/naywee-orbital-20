@@ -41,7 +41,7 @@ class AnncTable extends React.Component {
     for (var i = 0; i < rowsDeleted.data.length; i++) {
         var indexToDelete = rowsDeleted.data[i].index;
         var idToDelete = this.state.data[indexToDelete].id;
-        promises.push(fetch(`/api/${idToDelete}`, {
+        promises.push(fetch(`/api/students/${idToDelete}`, {
                             method: "DELETE" })
                         .then(response => response.json())
         );
@@ -55,8 +55,7 @@ class AnncTable extends React.Component {
     return new Promise((resolve, reject) => {
         var total = 0;
         var data = {};
-        
-        fetch("/api")
+        fetch("/api/students")
         .then(response => response.json())
         .then(jsonData => {
             total = jsonData.length;
@@ -88,21 +87,45 @@ class AnncTable extends React.Component {
   render() {
     const columns = [
         {
-          name: "id",
-          label: "ID",
+          name: "s_id",
+          label: "Student ID",
           options: {
             filter: true,
             sort: true,
           }
         },
         {
-         name: "description",
-         label: "Description",
-         options: {
-          filter: true,
-          sort: true,
-         }
+          name: "full_name",
+          label: "Full Name",
+          options: {
+            filter: true,
+            sort: true,
+          }
         },
+        {
+          name: "created_at",
+          label: "Timestamp",
+          options: {
+            filter: true,
+            sort: true,
+          }
+        },
+        {
+          name: "timetable",
+          label: "Timetable",
+          options: {
+            filter: true,
+            sort: true,
+          }
+        },
+        {
+          name: "custom_reminder",
+          label: "Custom Reminders",
+          options: {
+            filter: true,
+            sort: true,
+          }
+         },
        ];
 
     const { data, page, count, isLoading } = this.state;
