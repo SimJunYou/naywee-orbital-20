@@ -4,50 +4,57 @@ var router = express.Router();
 /* DATABASE POOL */
 const { pool } = require('./db')
 
-// Create a new student
-// - s_id (text) (the telegram ID)
-// - full_name (the full name from Telegram)
+// Create or update a student
 router.post("/api/students/sync", async (req, res) => {
   try {
-    const { s_id, full_name, lessons } = req.body;
+    const { s_id, full_name, timetable, custom_reminders } = req.body;
+
+    const today = new Date();
+    const date = today.getFullYear()+'-'+(today.getMonth()+1)+'-'+today.getDate();
+    const time = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds();
+    const date_time = date+' '+time;
 
     const newStudent = await pool.query(
       `
-      INSERT INTO students VALUES ($1, $2) ON CONFLICT (s_id)
-      DO UPDATE
-        full_name=EXCLUDED.full_name
+      INSERT INTO students VALUES ($1, $2, $3, $4, $5) ON CONFLICT (s_id)
+      DO UPDATE SET
+        full_name=EXCLUDED.full_name,
+        created_at=$3,
+        timetable=EXCLUDED.timetable,
+        custom_reminders=EXCLUDED.custom_reminders
       RETURNING *;
       `,
-      [s_id, full_name]
+      [s_id, full_name, date_time, timetable, custom_reminders]
     );
 
     const response = [newStudent.rows[0]];
+    res.json(response);
+  } catch (err) {
+    console.error(err.message);
+  }
+});
 
-    // lessons:
-    //   { lesson1, lesson2, lesson3, etc...}
-    // lessonX:
-    //   { l_id, days, periods, venues }
+// Create custom reminders
+router.post("/api/students/custom", async (req, res) => {
+  try {
+    const { s_id, custom_reminders } = req.body;
 
-    var lessonX = {};
-    while (Object.keys(lessons).length === 0) {
-      let { lessonX, ...lessons } = lessons;
-      const { l_id, days, periods, venues } = lessonX;
+    const today = new Date();
+    const date = today.getFullYear()+'-'+(today.getMonth()+1)+'-'+today.getDate();
+    const time = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds();
+    const date_time = date+' '+time;
 
-      const newLesson = await pool.query(
-        `
-        INSERT INTO lessons VALUES($1, $2, $3, $4) ON CONFLICT (l_id)
-        DO UPDATE SET
-          days=EXCLUDED.days,
-          periods=EXCLUDED.periods,
-          venues=EXCLUDED.venues
-        RETURNING *;
-        `,
-        [l_id, days, periods, venues]
-      );
+    const updateReminder = await pool.query(
+      `
+      UPDATE students SET created_at = $2, custom_reminders = $3
+        WHERE s_id = $1
+        RETURNING s_id, created_at, custom_reminders;
+      `
+      ,
+      [s_id, date_time, custom_reminders]
+    );
 
-      response.push(newLesson.rows[0]);
-    };
-
+    const response = [updateReminder.rows[0]];
     res.json(response);
   } catch (err) {
     console.error(err.message);
