@@ -8,6 +8,7 @@ verify_ssl = true
 [packages]
 python-telegram-bot = "*"
 schedule = "*"
+requests = "~=2.23.0"
 
 [requires]
 python_version = "3.6"
