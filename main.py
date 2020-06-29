@@ -1,29 +1,24 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import logging
 import os
-
+import logging
 import requests
 import json
-
 import datetime
-
 import telegram
-from telegram.ext import Updater, Filters
-from telegram.ext import CommandHandler, CallbackQueryHandler, ConversationHandler, MessageHandler
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-from telegram import ParseMode
+
+from telegram.ext import Updater, Filters, CommandHandler, CallbackQueryHandler, ConversationHandler, MessageHandler
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ParseMode
+
 
 # Enable logging
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    level=logging.INFO)
-
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
 # ConversationHandler states
-TIMETABLE, REMINDER = range(2)
+TIMETABLE = range(1)
 
 
 # User's timetable data
@@ -98,18 +93,10 @@ def timetable_input_page(update, context):
                     # requests.post("https://nusmods-tb-website.herokuapp.com/api/lessons", data=data_to_post)
                     lesson_formatted.append(data_to_post)
 
-    for data in lesson_formatted:
-        print(data)
-
     update.message.reply_text(timetable_input_msg(),
+                              reply_markup=return_keyboard(),
                               parse_mode=ParseMode.MARKDOWN_V2)
 
-    return REMINDER
-
-
-def reminder_page(update, context):
-    update.message.reply_text(text="Reminders will now be sent to you!",
-                              reply_markup=return_keyboard())
     return ConversationHandler.END
 
 
@@ -132,14 +119,6 @@ def cancel_page(update, context):
 def settings_page(update, context):
     query = update.callback_query
     query.edit_message_text(text=settings_msg(),
-                            reply_markup=settings_keyboard(),
-                            parse_mode=ParseMode.MARKDOWN_V2)
-
-
-# "See announcements"
-def announcement_page(update, context):
-    query = update.callback_query
-    query.edit_message_text(text=announcements_msg(),
                             reply_markup=return_keyboard(),
                             parse_mode=ParseMode.MARKDOWN_V2)
 
@@ -172,25 +151,13 @@ def list_module_page(update, context):
 # All functions here are appended with _keyboard for consistency
 def main_menu_keyboard():
     keyboard = [[InlineKeyboardButton("Sync timetable",
-                                      callback_data='m1')],
+                                      callback_data='sync')],
                 [InlineKeyboardButton("Change settings",
-                                      callback_data='m2')],
-                [InlineKeyboardButton("See announcements",
-                                      callback_data='m3')],
+                                      callback_data='settings')],
                 [InlineKeyboardButton("Learn more about me",
-                                      callback_data='m4')],
+                                      callback_data='help')],
                 [InlineKeyboardButton("List my module(s)",
-                                      callback_data='m5')]]
-    return InlineKeyboardMarkup(keyboard)
-
-
-def settings_keyboard():
-    keyboard = [[InlineKeyboardButton('Return', callback_data='main')]]
-    return InlineKeyboardMarkup(keyboard)
-
-
-def information_keyboard():
-    keyboard = [[InlineKeyboardButton('Return', callback_data='main')]]
+                                      callback_data='list')]]
     return InlineKeyboardMarkup(keyboard)
 
 
@@ -204,14 +171,12 @@ def return_keyboard():
 
 # All functions here are appended with _msg for consistency
 def main_menu_msg():
-    return ("*Hi there\! I am the NUSMods Telebot\.*\nIf it is your first time "
-            "using this bot, please select 'Learn more' below to learn "
-            "what I can do for you\.")
+    return ("*Hi there\! I am the NUSMods Telebot\.*\nIf it is your first time using this bot, please select "
+            "'Learn more' below to learn what I can do for you\.")
 
 
 def timetable_msg():
-    return ("*Timetable page:*\n"
-            "Send me a link to your NUSMods timetable for me to sync\!")
+    return ("*Timetable page:*\nSend me a link to your NUSMods timetable for me to sync\!")
 
 
 def timetable_input_msg():
@@ -219,17 +184,11 @@ def timetable_input_msg():
 
 
 def invalid_input_msg():
-    return ("Invalid input\! Please send me a url link instead\. Enter \/cancel "
-            "to go back to the main page\.")
+    return ("Invalid input\! Please send me a url link instead\. Enter \/cancel to go back to the main page\.")
 
 
 def cancel_msg():
     return ("Action cancelled\.")
-
-
-def announcements_msg():
-    return ("*Announcements page:*\n"
-            "I can't do anything yet\! Go back\!")
 
 
 def settings_msg():
@@ -238,14 +197,12 @@ def settings_msg():
 
 
 def help_msg():
-    return ("*Hi\! I am NUSMods Telebot\.*\n\n"
-            "By sending me the link to your NUSMods timetable, I can link myself up with "
-            "NUSMods’ data to send you reminders on lesson timings and venues\. If there is "
-            "a change in your timetable, simply send your timetable link to me again\!\n\n"
-            "I will send you daily reminders by default, but you can disable and then "
-            "subsequently restart certain reminders if you wish\. You can also create custom "
-            "reminders and change the frequency of your reminders\.\n\n"
-            "You can view announcements given by your faculty members through me as well\!")
+    return ("*Hi\! I am NUSMods Telebot\.*\n\nBy sending me the link to your NUSMods timetable, I can link "
+            "myself up with NUSMods’ data to send you reminders on lesson timings and venues\. If there is "
+            "a change in your timetable, simply send your timetable link to me again\!\n\nI will send you daily "
+            "reminders by default, but you can disable and then subsequently restart certain reminders if you "
+            "wish\. You can also create custom reminders and change the frequency of your reminders\.\n\nYou can "
+            "view announcements given by your faculty members through me as well\!")
 
 
 ########## HANDLERS ##########
@@ -260,25 +217,15 @@ def main():
     dispatcher = updater.dispatcher
 
     timetable_conv = ConversationHandler(
-        entry_points=[CallbackQueryHandler(timetable_page, pattern='m1')],
+        entry_points=[CallbackQueryHandler(timetable_page, pattern='sync')],
         states={TIMETABLE: [MessageHandler(Filters.regex(r'https:\/\/nusmods\.com(.*)'), timetable_input_page),
-                            MessageHandler(Filters.all & ~Filters.command, invalid_input_page)],
-                REMINDER: [CommandHandler('reminder', reminder_page)]},
+                            MessageHandler(Filters.all & ~Filters.command, invalid_input_page)]},
         fallbacks=[CommandHandler('cancel', cancel_page),
                    CommandHandler('start', cancel_page)]
     )
 
-    dispatcher.add_handler(timetable_conv)
-
-    dispatcher.add_handler(CommandHandler('start', start))
-    dispatcher.add_handler(CallbackQueryHandler(main_menu_page, pattern='main'))
-    dispatcher.add_handler(CallbackQueryHandler(timetable_page, pattern='m1'))
-    dispatcher.add_handler(CallbackQueryHandler(settings_page, pattern='m2'))
-    dispatcher.add_handler(CallbackQueryHandler(announcement_page, pattern='m3'))
-    dispatcher.add_handler(CallbackQueryHandler(help_page, pattern='m4'))
-    dispatcher.add_handler(CallbackQueryHandler(list_module_page, pattern='m5'))
-
     def reminders(update: telegram.Update, context: telegram.ext.CallbackContext):
+        update.message.reply_text(text="You will now start receiving reminders.")
         for lesson in lesson_formatted:
             day_number = -1
             text = "Your " + lesson["l_id"] + " lesson at " + lesson["venues"] + " is coming up from " + \
@@ -296,15 +243,22 @@ def main():
                 day_number = 4
             lesson_time_hour = lesson["periods"].split('-')[0][0:2]
             lesson_time_minute = lesson["periods"].split('-')[0][2:4]
-            lesson_time_formatted = datetime.time(int(lesson_time_hour) - 1, int(lesson_time_minute), 00, 000000,
-                                                  tzinfo=datetime.timezone(datetime.timedelta(seconds=28800)))
+            lesson_time_formatted = datetime.time(int(lesson_time_hour) - 1, int(lesson_time_minute) + 29, 0,
+                                                  0, tzinfo=datetime.timezone(datetime.timedelta(seconds=28800)))
             job_queue.run_daily(send_reminder, lesson_time_formatted, days=tuple([day_number]),
                                 context=[update.message.chat_id, text])
 
     def send_reminder(context: telegram.ext.CallbackContext):
         context.bot.send_message(chat_id=context.job.context[0], text=context.job.context[1])
 
+    dispatcher.add_handler(timetable_conv)
+    dispatcher.add_handler(CommandHandler('start', start))
     dispatcher.add_handler(CommandHandler('reminder', reminders, pass_job_queue=True))
+    dispatcher.add_handler(CallbackQueryHandler(main_menu_page, pattern='main'))
+    dispatcher.add_handler(CallbackQueryHandler(timetable_page, pattern='sync'))
+    dispatcher.add_handler(CallbackQueryHandler(settings_page, pattern='settings'))
+    dispatcher.add_handler(CallbackQueryHandler(help_page, pattern='help'))
+    dispatcher.add_handler(CallbackQueryHandler(list_module_page, pattern='list'))
 
     dispatcher.add_error_handler(error)
 
