@@ -9,6 +9,7 @@ import json
 
 import datetime
 
+import telegram
 from telegram.ext import Updater, Filters
 from telegram.ext import CommandHandler, CallbackQueryHandler, ConversationHandler, MessageHandler
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
@@ -254,8 +255,7 @@ def error(update, context):
 
 
 def main():
-    # updater = Updater(os.environ['TELE_TOKEN'], use_context=True)
-    updater = Updater(token='1130956112:AAHJvZVA3eblWpWSfTT4JF2E8mO4Wn1Xtqo', use_context=True)
+    updater = Updater(os.environ['TELE_TOKEN'], use_context=True)
     job_queue = updater.job_queue
     dispatcher = updater.dispatcher
 
@@ -278,7 +278,7 @@ def main():
     dispatcher.add_handler(CallbackQueryHandler(help_page, pattern='m4'))
     dispatcher.add_handler(CallbackQueryHandler(list_module_page, pattern='m5'))
 
-    def reminders(bot, update, job_queue):
+    def reminders(update: telegram.Update, context: telegram.ext.CallbackContext):
         for lesson in lesson_formatted:
             day_number = -1
             text = "Your " + lesson["l_id"] + " lesson at " + lesson["venues"] + " is coming up from " + \
@@ -296,11 +296,13 @@ def main():
                 day_number = 4
             lesson_time_hour = lesson["periods"].split('-')[0][0:2]
             lesson_time_minute = lesson["periods"].split('-')[0][2:4]
-            lesson_time_formatted = datetime.time(lesson_time_hour - 1, lesson_time_minute, 00, 000000)
-            job_queue.run_daily(send_reminder(text), lesson_time_formatted, days=tuple([day_number]), context=update)
+            lesson_time_formatted = datetime.time(int(lesson_time_hour) - 1, int(lesson_time_minute), 00, 000000,
+                                                  tzinfo=datetime.timezone(datetime.timedelta(seconds=28800)))
+            job_queue.run_daily(send_reminder, lesson_time_formatted, days=tuple([day_number]),
+                                context=[update.message.chat_id, text])
 
-    #def send_reminder(bot, job):
-        #bot.send_message(chat_id=)
+    def send_reminder(context: telegram.ext.CallbackContext):
+        context.bot.send_message(chat_id=context.job.context[0], text=context.job.context[1])
 
     dispatcher.add_handler(CommandHandler('reminder', reminders, pass_job_queue=True))
 
